@@ -7,6 +7,7 @@ from account_service.domain import commands
 from account_service.domain.account import Account
 from account_service.domain.errors import CustomerNotFound, AccountNotFound
 
+
 accounts = Blueprint('accounts', __name__, url_prefix='/accounts/')
 
 POST_ACCOUNT_PAYLOAD_SCHEMA = Schema({'customerId': And(str, len)})
@@ -47,6 +48,23 @@ def post_account():
         'accountNumber': account.formatted_account_number,
         'accountStatus': 'active'
     }), HTTPStatus.CREATED
+
+
+@accounts.route('/<int:account_number>', methods=['PATCH'])
+def patch_account(account_number):
+    if not request.is_json:
+        raise ContentTypeError()
+
+    body = request.get_json()
+
+    account = commands.update_account(
+        account_number=account_number,
+        values=body,
+        account_repository=current_app.account_repository)
+
+    return jsonify(accountNumber=account.formatted_account_number,
+                   accountStatus=account.account_status,
+                   customerId=account.customer_id), HTTPStatus.PARTIAL_CONTENT
 
 
 @accounts.errorhandler(AccountNotFound)
